@@ -59,26 +59,6 @@ void static inline Filltimes(uint64_t **times) {
 	                    (cycles_low):: "%rax", "%rbx", "%rcx", "%rdx");
 	/***********************************/
 
-
-
-
-
-
-
-
-
-
-
-    
-
-/**/
-
-    
- 
-
-
-/*Do that 500 times*/
-
 for(m=0; m <M_TIMES; m++) {
 
 /*Change permission to each domain*/
