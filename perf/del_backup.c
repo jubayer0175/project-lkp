@@ -1,18 +1,27 @@
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/init.h>
-#include <linux/hardirq.h>
-#include <linux/slab.h>
-#include <linux/preempt.h>
-#include <linux/sched.h>
-#define SIZE_OF_STAT 1000
-#define BOUND_OF_LOOP 500
-#define UINT64_MAX (18446744073709551615ULL)
+#include <stdint.h>
+#include<stdio.h>
+#include<errno.h>
+#include<stdlib.h>
+#define SIZE_OF_STAT 10
+#define BOUND_OF_LOOP 50
 
-void inline Filltimes(uint64_t **times) {
-	unsigned long flags;
-	int i, j;
-	uint64_t start, end;
+
+#define DOMAIN 15
+#define M_TIMES 5
+
+
+
+#include<mpt/pkey.h>
+#include <mpt/mpt.h>
+#include"mpk_apis.h"
+
+
+       char* addr[DOMAIN];
+int vpkeys[DOMAIN];
+int ii;
+void static inline Filltimes(uint64_t **times) {
+	int i, j,m, p;
+	unsigned long long start, end;
 	unsigned cycles_low, cycles_high, cycles_low1, cycles_high1;
 	volatile int variable = 0;
 
@@ -42,30 +51,83 @@ void inline Filltimes(uint64_t **times) {
 	for (j=0; j<BOUND_OF_LOOP; j++) {
 	    for (i =0; i<SIZE_OF_STAT; i++) {
 	        variable = 0;
-	        preempt_disable();
-	        raw_local_irq_save(flags);
-	
+		
 	        asm volatile ("CPUID\n\t"
 	                    "RDTSC\n\t"
 	                    "mov %%edx, %0\n\t"
 	                    "mov %%eax, %1\n\t": "=r" (cycles_high), "=r"
 	                    (cycles_low):: "%rax", "%rbx", "%rcx", "%rdx");
 	/***********************************/
-	/* Will call mpk inplemented function and not MPK version of the code*/
+
+
+
+
+
+
+
+
+
+
+
+    
+
+/**/
+
+    
+
+    for(ii = 0; ii< DOMAIN; ii++) {
+    vpkeys[ii] = rwmmap((void**)&addr[ii]);
+    }
+
+    printf("Creating 15 domains each with one page memory.........\n");
+
+
+ 
+
+
+/*Do that 500 times*/
+
+for(m=0; m <M_TIMES; m++) {
+
+/*Change permission to each domain*/
+    for(p = 0; p<DOMAIN; p++) {
+        BRIDGE_DOMAINRW(vpkeys[p]);
+        for(ii =0;ii< 4096;ii++) {
+            addr[p][ii] = (0x41+p)%128; /*just to keep tthings ascii*/
+                }
+        for(ii =0;ii< 4096;ii++)
+      //  printf("%c",addr[p][ii]);
+        printf("\n");
+	    EXIT_DOMAIN(vpkeys[p]);
+    printf("ii=%d p = %d\n\n", ii, p);
+    }
+
+}
+
+   /*Release keys and pages*/
+
+
+
+    for(ii=0; ii<DOMAIN; ii++)
+        DESTROY_DOMAIN(vpkeys[ii]);
+
+
+
 	/***********************************/
-	asm volatile("RDTSCP\n\t"
+
+    asm volatile("RDTSCP\n\t"
 	 "mov %%edx, %0\n\t"
 	 "mov %%eax, %1\n\t"
 	 "CPUID\n\t": "=r" (cycles_high1), "=r"
 	(cycles_low1):: "%rax", "%rbx", "%rcx", "%rdx");
-	raw_local_irq_restore(flags);
-	preempt_enable();
+	//raw_local_irq_restore(flags);
+	//preempt_enable();
 
 
 	start = ( ((uint64_t)cycles_high << 32) | cycles_low );
 	end = ( ((uint64_t)cycles_high1 << 32) | cycles_low1 );
 	if ( (end - start) < 0) {
-	printk(KERN_ERR "\n\n>>>>>>>>>>>>>> CRITICAL ERROR IN TAKING THE TIME!!!!!!\n loop(%d) stat(%d) start = %llu, end = %llu, variable = %u\n", j, i, start, end, variable);
+	printf("\n\n Time is not right\n loop(%d) stat(%d) start = %llu, end = %llu, variable = %u\n", j, i, start, end, variable);
 		times[j][i] = 0;
 			}
 		else
@@ -76,6 +138,9 @@ void inline Filltimes(uint64_t **times) {
 	}
 	   return;
  }
+
+
+
 
 
 uint64_t var_calc(uint64_t *inputs, int size)
@@ -99,47 +164,57 @@ for (i=0; i< size; i++) {
     if (temp_var < previous) goto overflow;
     temp_var =(temp_var - acc)/(((uint64_t)(size))*((uint64_t)(size)));
     return (temp_var); 
-        overflow: printk(KERN_ERR "\n\n>>>>>>>>>>>>>> CRITICAL OVERFLOW ERROR IN var_calc!!!!!!\n\n");
+        overflow: printf("\n\n>>>>>>>>>>>>>> CRITICAL OVERFLOW ERROR IN var_calc!!!!!!\n\n");
     return -EINVAL;
     }
 
 
-static int __init hello_start(void)
+
+
+
+
+int main(void)
 {
 int i = 0, j = 0, spurious = 0, k =0;
 uint64_t **times;
 uint64_t *variances;
+_init(.5);
+
+
+
+
 
 uint64_t *min_values;
 uint64_t max_dev = 0, min_time = 0, max_time = 0, prev_min =0, tot_var=0,
 	max_dev_all=0, var_of_vars=0, var_of_mins=0;
 
-    printk(KERN_INFO "Loading hello module...\n");
-    times = kmalloc(BOUND_OF_LOOP*sizeof(uint64_t*), GFP_KERNEL);
+    printf("Start measuring...\n");
+    times = malloc(BOUND_OF_LOOP*sizeof(uint64_t*));
 if (!times) {
-printk(KERN_ERR "unable to allocate memory for times\n");
+printf("unable to allocate memory for times\n");
 return 0;
 }
 
 for (j=0; j<BOUND_OF_LOOP; j++) {
-        times[j] = kmalloc(SIZE_OF_STAT*sizeof(uint64_t), GFP_KERNEL);
+        times[j] = malloc(SIZE_OF_STAT*sizeof(uint64_t));
         if (!times[j]) {
-            printk(KERN_ERR "unable to allocate memory for times[%d]\n", j);
+            printf("unable to allocate memory for times[%d]\n", j);
             for (k=0; k<j; k++)
-            kfree(times[k]);
+                free(times[k]);
             return 0;
+            
             }
         }
 
- variances = kmalloc(BOUND_OF_LOOP*sizeof(uint64_t), GFP_KERNEL);
+ variances = malloc(BOUND_OF_LOOP*sizeof(uint64_t));
     if (!variances) {
-printk(KERN_ERR "unable to allocate memory for variances\n");
+printf("unable to allocate memory for variances\n");
 return 0;
 }
 
-        min_values = kmalloc(BOUND_OF_LOOP*sizeof(uint64_t), GFP_KERNEL);
+        min_values = malloc(BOUND_OF_LOOP*sizeof(uint64_t));
         if (!min_values) {
-         printk(KERN_ERR "unable to allocate memory for min_values\n");
+         printf("unable to allocate memory for min_values\n");
         return 0;
  }
 
@@ -170,30 +245,27 @@ if (max_dev > max_dev_all)
 	variances[j] = var_calc(times[j], SIZE_OF_STAT);
 	tot_var += variances[j];
 
-        printk(KERN_ERR "variance(cycles): %llu; max_deviation: %llu ;min time: %llu", variances[j], max_dev, min_time);
+        printf("variance(cycles): %lu; max_deviation: %lu ;min time: %lu\n", variances[j], max_dev, min_time);
  	prev_min = min_time;
 }
 
 var_of_vars = var_calc(variances, BOUND_OF_LOOP);
 var_of_mins = var_calc(min_values, BOUND_OF_LOOP);
-	printk(KERN_ERR "\n total number of spurious min values = %d", spurious);
-	printk(KERN_ERR "\n total variance = %llu", (tot_var/BOUND_OF_LOOP));
-	printk(KERN_ERR "\n absolute max deviation = %llu", max_dev_all);
-	printk(KERN_ERR "\n variance of variances = %llu", var_of_vars);
-	printk(KERN_ERR "\n variance of minimum values = %llu", var_of_mins);
+	printf("\n total number of spurious min values = %d", spurious);
+	printf("\n total variance = %lu", (tot_var/BOUND_OF_LOOP));
+	printf("\n absolute max deviation = %lu", max_dev_all);
+	printf("\n variance of variances = %lu", var_of_vars);
+	printf("\n variance of minimum values = %lu", var_of_mins);
 for (j=0; j<BOUND_OF_LOOP; j++) {
-	kfree(times[j]);
+	    free(times[j]);
 }
-	kfree(times);
-	kfree(variances);
-	kfree(min_values);
+	    free(times);
+	    free(variances);
+	    free(min_values);
+
+
+
 	return 0;
 }
 
-static void __exit hello_end(void)
-{
-	printk(KERN_INFO "Module Unloaded\n");
-}
 
-	module_init(hello_start);
-module_exit(hello_end);

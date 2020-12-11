@@ -44,7 +44,7 @@
 
 
 #define DOMAIN 15
-#define M_TIMES 500
+#define M_TIMES 5
 
 
 int vpkeys[DOMAIN];
@@ -87,6 +87,6 @@ for(m=0; m <M_TIMES; m++) {
 
    /*Release keys and pages*/
     for(i= 0; i<DOMAIN; i++)
-        DESTROY_DOMAIN(vpkeys[0]);
+        DESTROY_DOMAIN(vpkeys[i]);
     return 0;
 }
