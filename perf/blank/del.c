@@ -2,7 +2,7 @@
 #include<stdio.h>
 #include<errno.h>
 #include<stdlib.h>
-#define SIZE_OF_STAT 10
+#define SIZE_OF_STAT 100
 #define BOUND_OF_LOOP 50
 
 
@@ -59,28 +59,6 @@ void static inline Filltimes(uint64_t **times) {
 	                    (cycles_low):: "%rax", "%rbx", "%rcx", "%rdx");
 	/***********************************/
 
-for(m=0; m <M_TIMES; m++) {
-
-/*Change permission to each domain*/
-    for(p = 0; p<DOMAIN; p++) {
-        BRIDGE_DOMAINRW(vpkeys[p]);
-        for(ii =0;ii< 4096;ii++) {
-            addr[p][ii] = (0x41+p)%128; /*just to keep tthings ascii*/
-                }
-        for(ii =0;ii< 4096;ii++)
-      //  printf("%c",addr[p][ii]);
-//       printf("\n");
-	    EXIT_DOMAIN(vpkeys[p]);
-   // printf("ii=%d p = %d\n\n", ii, p);
-    }
-
-}
-
-   /*Release keys and pages*/
-
-
-
-
 
 
 	/***********************************/
@@ -106,31 +84,6 @@ for(m=0; m <M_TIMES; m++) {
  }
 
 
-uint64_t var_calc(uint64_t *inputs, int size)
-{
-int i;
-uint64_t acc = 0, previous = 0, temp_var = 0;
-for (i=0; i< size; i++) {
-	if (acc < previous) goto overflow;
-	previous = acc;
-	acc += inputs[i];
-	}
-    acc = acc * acc;
-    if (acc < previous) goto overflow;
-            previous = 0;
-    for (i=0; i< size; i++){
-        if (temp_var < previous) goto overflow;
-            previous = temp_var;
-            temp_var+= (inputs[i]*inputs[i]);
-            }
-    temp_var = temp_var * size;
-    if (temp_var < previous) goto overflow;
-    temp_var =(temp_var - acc)/(((uint64_t)(size))*((uint64_t)(size)));
-    return (temp_var); 
-        overflow: printf("\n\n>>>>>>>>>>>>>> CRITICAL OVERFLOW ERROR IN var_calc!!!!!!\n\n");
-    return -EINVAL;
-    }
-
 
 
 
@@ -141,7 +94,7 @@ int main(void)
 int i = 0, j = 0, spurious = 0, k =0;
 uint64_t **times;
 uint64_t *variances;
-_init(.5);
+_init(1);
 
 
     for(ii = 0; ii< DOMAIN; ii++) {
@@ -192,7 +145,7 @@ return 0;
 
 Filltimes(times);/* This is my utimate bro*/
 
-FILE *fd = fopen("data.txt", "w");
+FILE *fd = fopen("data_libmpk_1.txt", "w");
 
 
 for(j =0; j< BOUND_OF_LOOP; j++){

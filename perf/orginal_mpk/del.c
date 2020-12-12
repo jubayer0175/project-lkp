@@ -24,7 +24,7 @@
 #include <sys/ioctl.h>
 #include <stdio_ext.h>
 #include<mpt/pkey.h>
-#define SIZE_OF_STAT 10
+#define SIZE_OF_STAT 100
 #define BOUND_OF_LOOP 50
 
 

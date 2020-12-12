@@ -1,5 +1,5 @@
 all:
-	gcc -Wall -o b.exe example.c -lmpt
+	gcc -Wall -o b.exe del.c -lmpt
 
 
 

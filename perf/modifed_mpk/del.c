@@ -2,12 +2,12 @@
 #include<stdio.h>
 #include<errno.h>
 #include<stdlib.h>
-#define SIZE_OF_STAT 10
+#define SIZE_OF_STAT 100
 #define BOUND_OF_LOOP 50
 
 
 #define DOMAIN 15
-#define M_TIMES 5
+#define M_TIMES 1
 
 
 
@@ -59,34 +59,6 @@ void static inline Filltimes(uint64_t **times) {
 	                    (cycles_low):: "%rax", "%rbx", "%rcx", "%rdx");
 	/***********************************/
 
-
-
-
-
-
-
-
-
-
-
-    
-
-/**/
-
-    
-
-    for(ii = 0; ii< DOMAIN; ii++) {
-    vpkeys[ii] = rwmmap((void**)&addr[ii]);
-    }
-
-    printf("Creating 15 domains each with one page memory.........\n");
-
-
- 
-
-
-/*Do that 500 times*/
-
 for(m=0; m <M_TIMES; m++) {
 
 /*Change permission to each domain*/
@@ -97,9 +69,9 @@ for(m=0; m <M_TIMES; m++) {
                 }
         for(ii =0;ii< 4096;ii++)
       //  printf("%c",addr[p][ii]);
-        printf("\n");
+//       printf("\n");
 	    EXIT_DOMAIN(vpkeys[p]);
-    printf("ii=%d p = %d\n\n", ii, p);
+   // printf("ii=%d p = %d\n\n", ii, p);
     }
 
 }
@@ -108,8 +80,6 @@ for(m=0; m <M_TIMES; m++) {
 
 
 
-    for(ii=0; ii<DOMAIN; ii++)
-        DESTROY_DOMAIN(vpkeys[ii]);
 
 
 
@@ -120,10 +90,6 @@ for(m=0; m <M_TIMES; m++) {
 	 "mov %%eax, %1\n\t"
 	 "CPUID\n\t": "=r" (cycles_high1), "=r"
 	(cycles_low1):: "%rax", "%rbx", "%rcx", "%rdx");
-	//raw_local_irq_restore(flags);
-	//preempt_enable();
-
-
 	start = ( ((uint64_t)cycles_high << 32) | cycles_low );
 	end = ( ((uint64_t)cycles_high1 << 32) | cycles_low1 );
 	if ( (end - start) < 0) {
@@ -143,34 +109,6 @@ for(m=0; m <M_TIMES; m++) {
 
 
 
-uint64_t var_calc(uint64_t *inputs, int size)
-{
-int i;
-uint64_t acc = 0, previous = 0, temp_var = 0;
-for (i=0; i< size; i++) {
-	if (acc < previous) goto overflow;
-	previous = acc;
-	acc += inputs[i];
-	}
-    acc = acc * acc;
-    if (acc < previous) goto overflow;
-            previous = 0;
-    for (i=0; i< size; i++){
-        if (temp_var < previous) goto overflow;
-            previous = temp_var;
-            temp_var+= (inputs[i]*inputs[i]);
-            }
-    temp_var = temp_var * size;
-    if (temp_var < previous) goto overflow;
-    temp_var =(temp_var - acc)/(((uint64_t)(size))*((uint64_t)(size)));
-    return (temp_var); 
-        overflow: printf("\n\n>>>>>>>>>>>>>> CRITICAL OVERFLOW ERROR IN var_calc!!!!!!\n\n");
-    return -EINVAL;
-    }
-
-
-
-
 
 
 int main(void)
@@ -178,7 +116,15 @@ int main(void)
 int i = 0, j = 0, spurious = 0, k =0;
 uint64_t **times;
 uint64_t *variances;
-_init(.5);
+_init(1);
+
+
+    for(ii = 0; ii< DOMAIN; ii++) {
+    vpkeys[ii] = rwmmap((void**)&addr[ii]);
+    }
+
+    printf("Creating 15 domains each with one page memory.........\n");
+
 
 
 
@@ -221,50 +167,28 @@ return 0;
 
 Filltimes(times);/* This is my utimate bro*/
 
-for (j=0; j<BOUND_OF_LOOP; j++) {
+FILE *fd = fopen("data_libmpk_1.txt", "w");
 
-	max_dev = 0;
-	min_time = 0;
-	max_time = 0;
 
-for (i =0; i<SIZE_OF_STAT; i++) {
-        if ((min_time == 0)||(min_time > times[j][i]))
-	        min_time = times[j][i];
-        if (max_time < times[j][i])
-	        max_time = times[j][i];
-        }
+for(j =0; j< BOUND_OF_LOOP; j++){
+    for(i=0; i<SIZE_OF_STAT; i++) {
+    
+       printf( "%lu\n",times[j][i]);
+        fprintf(fd, "%lu ",times[j][i] );
+    }
 
-	max_dev = max_time - min_time;
- 	min_values[j] = min_time;
-
-if ((prev_min != 0) && (prev_min > min_time))
-	spurious++;
-if (max_dev > max_dev_all)
- 	    max_dev_all = max_dev;
-
-	variances[j] = var_calc(times[j], SIZE_OF_STAT);
-	tot_var += variances[j];
-
-        printf("variance(cycles): %lu; max_deviation: %lu ;min time: %lu\n", variances[j], max_dev, min_time);
- 	prev_min = min_time;
+        fprintf(fd, "\n" );
 }
 
-var_of_vars = var_calc(variances, BOUND_OF_LOOP);
-var_of_mins = var_calc(min_values, BOUND_OF_LOOP);
-	printf("\n total number of spurious min values = %d", spurious);
-	printf("\n total variance = %lu", (tot_var/BOUND_OF_LOOP));
-	printf("\n absolute max deviation = %lu", max_dev_all);
-	printf("\n variance of variances = %lu", var_of_vars);
-	printf("\n variance of minimum values = %lu", var_of_mins);
+fclose(fd);
 for (j=0; j<BOUND_OF_LOOP; j++) {
 	    free(times[j]);
 }
 	    free(times);
 	    free(variances);
 	    free(min_values);
-
-
-
+    for(ii=0; ii<DOMAIN; ii++)
+        DESTROY_DOMAIN(vpkeys[ii]);
 	return 0;
 }
 
